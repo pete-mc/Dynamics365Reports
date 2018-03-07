@@ -11,7 +11,7 @@ using System.Linq;
 using System.IO;
 using OpenHtmlToPdf; 
 
-
+// updated
 public static async Task<HttpResponseMessage> Run(HttpRequestMessage req, TraceWriter log, ExecutionContext context)
 {
     log.Info("C# HTTP trigger function processed a request.");
