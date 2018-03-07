@@ -1,4 +1,5 @@
 #r "Newtonsoft.Json"
+//#load "file.csx"
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
@@ -11,12 +12,12 @@ using System.Linq;
 using System.IO;
 using OpenHtmlToPdf; 
 
-// updated
 public static async Task<HttpResponseMessage> Run(HttpRequestMessage req, TraceWriter log, ExecutionContext context)
 {
     log.Info("C# HTTP trigger function processed a request.");
 
     // parse query parameter and connect to CRM 
+    // need to add support for [EntityName, EntityID], [FetchXML] & HTML resources
     string crmId = req.GetQueryNameValuePairs().FirstOrDefault(q => string.Compare(q.Key, "crmId", true) == 0).Value;
     string crmOrg = req.GetQueryNameValuePairs().FirstOrDefault(q => string.Compare(q.Key, "crmorg", true) == 0).Value;
     string apiKey = req.GetQueryNameValuePairs().FirstOrDefault(q => string.Compare(q.Key, "apikey", true) == 0).Value;
@@ -44,7 +45,9 @@ public static async Task<HttpResponseMessage> Run(HttpRequestMessage req, TraceW
     authCredentials.ClientCredentials.UserName.Password = "";
     AuthenticationCredentials tokenCredentials = orgServiceManagement.Authenticate(authCredentials);
     OrganizationServiceProxy organizationProxy = new OrganizationServiceProxy(orgServiceManagement, tokenCredentials.SecurityTokenResponse);
+
     // import HTML templates
+    // need to add support for looking up HTML webresources
     string templateFile = ""; //HTML URL.
     string htmlTemplate = string.Join(" ", File.ReadAllLines(templateFile,System.Text.Encoding.UTF8));
     string SnippetTemplate(string FileName)
@@ -83,15 +86,31 @@ public static async Task<HttpResponseMessage> Run(HttpRequestMessage req, TraceW
         DataCollection<Entity> tempDCEntity = organizationProxy.RetrieveMultiple(tempQuery).Entities;
         return tempDCEntity;
     }
+
+    string fetchXML = @"
+    <fetch mapping='logical'>
+        <entity name='account'> 
+            <attribute name='accountid'/> 
+            <attribute name='name'/> 
+            <link-entity name='systemuser' to='owninguser'> 
+            <filter type='and'> 
+                <condition attribute='lastname' operator='ne' value='Cannon' /> 
+            </filter> 
+            </link-entity> 
+        </entity> 
+    </fetch> "; 
+
+    EntityCollection result = organizationProxy.RetrieveMultiple(new FetchExpression(fetchXML));
+
     string getEntValue(string CRMKey, Entity ent)
     {
         return ent.FormattedValues.ContainsKey(CRMKey) ? ent.FormattedValues[CRMKey].ToString() : ent.Attributes.ContainsKey(CRMKey) ? ent.Attributes[CRMKey].ToString() : "";
     }
-    string removeYearFromDate(string dateToProcess){
-        var dateArray = dateToProcess.Split('/');
-        if (dateArray.Length != 3) return "";
-        return dateArray[0]+'/'+dateArray[1]+'/'+dateArray[2].Substring(2,2);
-    }
+
+    //replace options
+    // Single field from source record <!--XRMREPORT:{"Type": "Field", "Field": "new_name"}-->
+    // Single field from related record <!--XRMREPORT:{"Type": "Lookup", "Lookup": "new_contact", "Field": "firstname"}-->
+    // Subreport <!--XRMREPORT:{"Type": "Subreport", "RelatedEntity": "contacts", "RelatedField" : "new_field"}-->
 
     htmlTemplate = htmlTemplate.Replace("stuff",PastAssistanceValue)        ;
     
