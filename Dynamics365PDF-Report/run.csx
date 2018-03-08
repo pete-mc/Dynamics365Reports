@@ -11,24 +11,31 @@ using Microsoft.Xrm.Sdk.Query;
 using System.Linq;
 using System.IO;
 using OpenHtmlToPdf; 
+using System.Text.RegularExpressions;
 
 public static async Task<HttpResponseMessage> Run(HttpRequestMessage req, TraceWriter log, ExecutionContext context)
 {
     log.Info("C# HTTP trigger function processed a request.");
 
-    // parse query parameter and connect to CRM 
+    // parse query parameter or request body
     // need to add support for [EntityName, EntityID], [FetchXML] & HTML resources
-    string crmId = req.GetQueryNameValuePairs().FirstOrDefault(q => string.Compare(q.Key, "crmId", true) == 0).Value;
-    string crmOrg = req.GetQueryNameValuePairs().FirstOrDefault(q => string.Compare(q.Key, "crmorg", true) == 0).Value;
-    string apiKey = req.GetQueryNameValuePairs().FirstOrDefault(q => string.Compare(q.Key, "apikey", true) == 0).Value;
+    string EntityID = req.GetQueryNameValuePairs().FirstOrDefault(q => string.Compare(q.Key, "EntityID", true) == 0).Value;
+    string EntityName = req.GetQueryNameValuePairs().FirstOrDefault(q => string.Compare(q.Key, "EntityName", true) == 0).Value;
+    string FetchXML = req.GetQueryNameValuePairs().FirstOrDefault(q => string.Compare(q.Key, "FetchXML", true) == 0).Value;
+    string HTMLResource = req.GetQueryNameValuePairs().FirstOrDefault(q => string.Compare(q.Key, "HTMLResource", true) == 0).Value;
+    string crmOrgURI = req.GetQueryNameValuePairs().FirstOrDefault(q => string.Compare(q.Key, "crmOrgURI", true) == 0).Value;
+    string apiKey = req.GetQueryNameValuePairs().FirstOrDefault(q => string.Compare(q.Key, "apiKey", true) == 0).Value;
     bool Attachment = true;
-    if (crmId == null){
+    if (crmOrgURI == null){
         log.Info("Using Request Body");
         string bodyContent = await req.Content.ReadAsStringAsync();
         Dictionary<string, string> htmlAttributes = JsonConvert.DeserializeObject<Dictionary<string, string>>(bodyContent);
-        crmId = htmlAttributes["crmId"];
-        crmOrg = htmlAttributes["crmorg"];
-        apiKey = htmlAttributes["apikey"];
+        EntityID = htmlAttributes["EntityID"];
+        EntityName = htmlAttributes["EntityName"];
+        FetchXML = htmlAttributes["FetchXML"];
+        HTMLResource = htmlAttributes["HTMLResource"];
+        crmOrgURI = htmlAttributes["crmOrgURI"];
+        apiKey = htmlAttributes["apiKey"];
         Attachment = false;
     } else
     {
@@ -36,9 +43,10 @@ public static async Task<HttpResponseMessage> Run(HttpRequestMessage req, TraceW
     }
     //check if key is correct
     if (apiKey != "dfgfdgfdgfdgavasdsadvx979amdb2349sbkmb435skvd430") { 
-        var resBad = new HttpResponseMessage(HttpStatusCode.Forbidden);
-        return resBad;
+        return new HttpResponseMessage(HttpStatusCode.Forbidden);
     } 
+    
+    // connect to CRM
     IServiceManagement<IOrganizationService> orgServiceManagement = ServiceConfigurationFactory.CreateManagement<IOrganizationService>(new Uri("https://"+crmOrg+".api.crm6.dynamics.com/XRMServices/2011/Organization.svc"));    
     AuthenticationCredentials authCredentials = new AuthenticationCredentials();
     authCredentials.ClientCredentials.UserName.UserName = "";
@@ -48,21 +56,40 @@ public static async Task<HttpResponseMessage> Run(HttpRequestMessage req, TraceW
 
     // import HTML templates
     // need to add support for looking up HTML webresources
-    string templateFile = ""; //HTML URL.
-    string htmlTemplate = string.Join(" ", File.ReadAllLines(templateFile,System.Text.Encoding.UTF8));
-    string SnippetTemplate(string FileName)
-    {
-        string fullFileName = Path.Combine(context.FunctionAppDirectory,"VincentianAssistanceReport", FileName);
-        return string.Join(" ", File.ReadAllLines(fullFileName,System.Text.Encoding.UTF8));
- 
-    }
+    string retrieveWebResource(string webresourceName)
+        {
+            ColumnSet cols = new ColumnSet();
+            cols.AddColumn("content");
+            QueryByAttribute requestWebResource = new QueryByAttribute
+            {
+                EntityName = "webresource",
+                ColumnSet = cols
+            };
+            requestWebResource.Attributes.AddRange("name");
+            requestWebResource.Values.AddRange(webresourceName);
 
-    // Get CRM data
-    var CRMColumnSet = new ColumnSet(true);
-    var CRMGuid = new Guid(crmId);
-    var CRMRecord = organizationProxy.Retrieve("name of entity",CRMGuid,CRMColumnSet);
+            Entity webResourceEntity = null;
+            EntityCollection webResourceEntityCollection = organizationProxy.RetrieveMultiple(requestWebResource);
 
-    DataCollection<Entity> GetRelatedEntity(string retriveEntity, string filterAttribute, Guid filterValue,string orderField, OrderType orderType)
+            if (webResourceEntityCollection.Entities.Count > 0)
+            {
+                webResourceEntity = webResourceEntityCollection.Entities[0];
+                byte[] binary = Convert.FromBase64String(webResourceEntity.Attributes["content"].ToString());
+                string resourceContent = Encoding.UTF8.GetString(binary);
+                string byteOrderMarkUtf8 = Encoding.UTF8.GetString(Encoding.UTF8.GetPreamble());                
+                if (resourceContent.StartsWith("\""))
+                {
+                    resourceContent = resourceContent.Remove(0, byteOrderMarkUtf8.Length);
+                }               
+            }
+            return resourceContent;
+        }
+
+    string htmlTemplate = retrieveWebResource(HTMLResource);
+   //functions
+
+    //Get related entity via Query Expression
+    DataCollection<Entity> GetRelatedEntityFromQuery(string retriveEntity, string filterAttribute, Guid filterValue,string orderField, OrderType orderType)
     {
         QueryExpression tempQuery = new QueryExpression
         {
@@ -86,33 +113,59 @@ public static async Task<HttpResponseMessage> Run(HttpRequestMessage req, TraceW
         DataCollection<Entity> tempDCEntity = organizationProxy.RetrieveMultiple(tempQuery).Entities;
         return tempDCEntity;
     }
-
-    string fetchXML = @"
-    <fetch mapping='logical'>
-        <entity name='account'> 
-            <attribute name='accountid'/> 
-            <attribute name='name'/> 
-            <link-entity name='systemuser' to='owninguser'> 
-            <filter type='and'> 
-                <condition attribute='lastname' operator='ne' value='Cannon' /> 
-            </filter> 
-            </link-entity> 
-        </entity> 
-    </fetch> "; 
-
-    EntityCollection result = organizationProxy.RetrieveMultiple(new FetchExpression(fetchXML));
-
-    string getEntValue(string CRMKey, Entity ent)
-    {
-        return ent.FormattedValues.ContainsKey(CRMKey) ? ent.FormattedValues[CRMKey].ToString() : ent.Attributes.ContainsKey(CRMKey) ? ent.Attributes[CRMKey].ToString() : "";
+    //Get related entity via Query Expression   
+    EntityCollection GetRelatedEntityFromFetchXML(string fetchXML){
+         return organizationProxy.RetrieveMultiple(new FetchExpression(fetchXML));
     }
 
+    //Get vaule of field from entity
+    string getEntValue(string CRMField, Entity ent)
+    {
+        return ent.FormattedValues.ContainsKey(CRMField) ? ent.FormattedValues[CRMField].ToString() : ent.Attributes.ContainsKey(CRMField) ? ent.Attributes[CRMField].ToString() : "";
+    }
+
+    // check method for base entity
+    // Get CRM data for current entity
+    var EntityRecord = new DataCollection<Entity>;
+    if (EntityID != null && EntityName != null && FetchXML == null && crmOrgURI != null  && HTMLResource != null){
+            log.Info("Using EntityID");
+            var CRMColumnSetAll = new ColumnSet(true);
+            var EntityGuid = new Guid(EntityID);
+            EntityRecord = organizationProxy.Retrieve(EntityName,EntityGuid,CRMColumnSetAll);
+    } else if (EntityID == null && EntityName == null && FetchXML != null && crmOrgURI != null  && HTMLResource != null){
+            log.Info("Using FetchXML");
+            EntityRecord = GetRelatedEntityFromFetchXML(FetchXML);
+    } else { 
+        return new HttpResponseMessage(HttpStatusCode.BadRequest);
+    } 
+ 
     //replace options
     // Single field from source record <!--XRMREPORT:{"Type": "Field", "Field": "new_name"}-->
     // Single field from related record <!--XRMREPORT:{"Type": "Lookup", "Lookup": "new_contact", "Field": "firstname"}-->
-    // Subreport <!--XRMREPORT:{"Type": "Subreport", "RelatedEntity": "contacts", "RelatedField" : "new_field"}-->
+    // WIP Subreport <!--XRMREPORT:{"Type": "Subgrid", "RelatedEntity": "contacts", "RelatedField" : "new_field"}-->
 
-    htmlTemplate = htmlTemplate.Replace("stuff",PastAssistanceValue)        ;
+    //replace HTML template fields
+    string pattern = @"/<!--XRMREPORT:[^>]*-->/g";
+    Match htmlReportComments = Regex.Match(htmlTemplate, pattern);
+    while (htmlReportComments.Success) {
+        log.Info("Working with comment: " + htmlReportComments.Value);
+        dynamic item = JsonConvert.DeserializeObject<dynamic>(htmlReportComments.Value.Replace("<!--XRMREPORT:","").Replace("-->",""));
+        switch (item.Type)
+        {
+            case "Field":
+                log.Info("Case Field");
+                htmlTemplate = htmlTemplate.Replace(htmlReportComments.Value, getEntValue(item.Field,EntityRecord));
+                break;
+            case "Lookup":
+                log.Info("Case Lookup");
+                break;
+            default:
+                log.Info("No Match");
+                break;
+        }
+        htmlTemplate.Replace(htmlReportComments.Value,htmlReportComments.Value);
+        htmlReportComments = htmlReportComments.NextMatch();
+      }   
     
     // PDF Creation
     log.Info("Processing PDF Request");
