@@ -23,7 +23,7 @@ public static string processHTML (string HTMLResource, OrganizationServiceProxy 
                 // Replace options
                 // Single field from source record <!--XRMREPORT:{"Type": "Field", "Field": "new_name"}-->
                 // Checkbox field from source record <!--XRMREPORT:{"Type": "Checkbox", "Field": "new_name", "CheckedValue" : "Yes"}-->
-                // WIP Subreport <!--XRMREPORT:{"Type": "Subreport", "FetchXML": "<blah>", "Webresource" : "webresource.html"}-->
+                // Subreport <!--XRMREPORT:{"Type": "Subreport", "FetchXML": "htmlEncodedFetchXML", "Webresource" : "new_webresource"}-->
                 switch (item["Type"].ToString())
                 {
                     case "Field":

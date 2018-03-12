@@ -1,5 +1,5 @@
 # Dynamics365Reports-AzureFunction
-Current WIP, planning to create a report framework for Dynamics 365 using a HTML layout and Azure Function to create a PDF report.
+Current WIP, A report framework for Dynamics 365 using an Azure Function to use a HTML layout and FetchXML to create a PDF report.
 
 Currently Planned Features:
 * Better support for currency formats
@@ -85,3 +85,32 @@ Name: <!--XRMREPORT:{"Type": "Checkbox", "Field": "new_YesNoField", "CheckedValu
 </body>
 </html>
 ```
+
+### Subreport Field
+Used to insert a Subreport. NB: At this stage the FetchXML is static, planning to allow for XML to be customised on the fly.
+#### Parameters
+
+**Type (string)**
+
+The type of placeholder, in this case "Subreport"
+
+
+**FetchXML (string)**
+
+HTML Encoded FetchXML for the subreport data.
+
+**Webresource (string)**
+
+Name of the subreport's webresource in CRM.
+
+**Example**
+```HTML
+<html>
+<body>
+<table>
+<tr><th>Field1</th><th>Field2</th></tr>
+<!--XRMREPORT:{"Type": "Subreport", "FetchXML": "htmlEncodedFetchXML", "Webresource" : "new_webresource"}-->
+</table>
+</body>
+</html>
+``` 
