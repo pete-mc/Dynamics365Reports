@@ -1,5 +1,6 @@
 # Dynamics365Reports-AzureFunction
 Current WIP, planning to create a report framework for Dynamics 365 using a HTML layout and Azure Function to create a PDF report.
+
 Currently Planned Features:
 * Optional checkboxes for Yes/No fields
 * Better support for currency formats
@@ -12,6 +13,7 @@ Currently Planned Features:
 1. Create a new HTTP Trigger C# function in Azure. Create / Replace function.json, project.json and run.cx with files under Dynamics365PDF-Report folder.
 2. Create a HTML resource in Dynamics 365, use comment synax below to as placeholders for your data.
 3. Call the function with the following body syntax (You can also use a query string with the same params):
+
 **Note** The FetchXML is HTML encoded. [You can use website like to HTML encode](https://www.url-encode-decode.com/)
 ```JSON
 {
@@ -25,7 +27,7 @@ Currently Planned Features:
 ```
 ## HTML Comment Syntax
 1. Start all placeholders with <!--XRMREPORT:
-3. Paste in JSON with the options for the placeholder type you would like to use.
+3. Paste in JSON with the options for the placeholder type you would like to use, see Placeholder Types for more info.
 2. End all placeholders with -->
 
 ### Example
@@ -39,9 +41,14 @@ Name: <!--XRMREPORT:{"Type": "Field", "Field": "new_name"}-->
 
 ## Placeholder Types
 ### Single Field
-Parameters
+Used to insert a single field from the main FetchXML query.
+#### Parameters
+
 **Type (string)**
+
 The type of placeholder, in this case "Field"
 
+
 **Field**
+
 The name of the field to lookup.
