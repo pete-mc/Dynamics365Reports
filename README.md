@@ -49,6 +49,40 @@ Used to insert a single field from the main FetchXML query.
 The type of placeholder, in this case "Field"
 
 
-**Field**
+**Field (string)**
 
 The name of the field to lookup.
+
+**Example**
+```HTML
+<html>
+<body>
+Name: <!--XRMREPORT:{"Type": "Field", "Field": "new_name"}-->
+</body>
+</html>
+```
+### Checkbox Field
+Used to insert a single field from the main FetchXML query as a checkbox. Checkbox will be ticked if the field value matchs the specified CheckedValue.
+#### Parameters
+
+**Type (string)**
+
+The type of placeholder, in this case "Checkbox"
+
+
+**Field (string)**
+
+The name of the field to lookup.
+
+**CheckedValue (string)**
+
+The checkbox will be checked when this the field value matches this parameter.
+
+**Example**
+```HTML
+<html>
+<body>
+Name: <!--XRMREPORT:{"Type": "Checkbox", "Field": "new_YesNoField", "CheckedValue" : "Yes"}-->
+</body>
+</html>
+```

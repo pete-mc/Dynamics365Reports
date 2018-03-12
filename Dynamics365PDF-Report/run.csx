@@ -115,6 +115,7 @@ public static async Task<HttpResponseMessage> Run(HttpRequestMessage req, TraceW
 
     //replace options
     // Single field from source record <!--XRMREPORT:{"Type": "Field", "Field": "new_name"}-->
+    // Checkbox field from source record <!--XRMREPORT:{"Type": "Checkbox", "Field": "new_name", "CheckedValue" : "Yes"}-->
     // WIP Subreport <!--XRMREPORT:{"Type": "Subreport", "FetchXML": "<blah>", "Webresource" : "webresource.html"}-->
 
     //replace HTML template fields
@@ -130,6 +131,10 @@ public static async Task<HttpResponseMessage> Run(HttpRequestMessage req, TraceW
             case "Field":
                 log.Info("Case Field");
                 htmlTemplate = htmlTemplate.Replace(htmlReportComments.Value, getEntValue(item["Field"],EntityRecord));
+                break;
+            case "Checkbox":
+                log.Info("Case Checkbox");
+                htmlTemplate = htmlTemplate.Replace(htmlReportComments.Value, getEntValue(item["Field"], EntityRecord) == item["CheckedValue"] ? "<input type='checkbox' checked>" : "<input type='checkbox'>" );
                 break;
             case "Webresource":
                 log.Info("Case Webresource: Code WIP");
