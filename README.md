@@ -1,4 +1,4 @@
-# Dynamics365Reports-AzureFunction
+# Dynamics365Reports
 Current WIP, A report framework for Dynamics 365 using an Azure Function to use a HTML layout and FetchXML to create a PDF report.
 
 Currently Planned Features:
