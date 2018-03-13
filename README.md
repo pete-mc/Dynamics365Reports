@@ -86,6 +86,61 @@ Name: <!--XRMREPORT:{"Type": "Checkbox", "Field": "new_YesNoField", "CheckedValu
 </html>
 ```
 
+### Currency Field
+Used to insert a single field from the main FetchXML query and specify the Currency format.
+#### Parameters
+
+**Type (string)**
+
+The type of placeholder, in this case "Currency"
+
+
+**Field (string)**
+
+The name of the field to lookup.
+
+**Culture (string)**
+
+The culture to use for the currency format, eg en-US
+
+**Example**
+```HTML
+<html>
+<body>
+Amount: <!--XRMREPORT:{"Type": "Currency", "Field": "new_amount", "Culture" : "en-AU"}-->
+</body>
+</html>
+```
+### DateTime Field
+Used to insert a single field from the main FetchXML query and specify the Currency format.
+#### Parameters
+
+**Type (string)**
+
+The type of placeholder, in this case "DateTime"
+
+
+**Field (string)**
+
+The name of the field to lookup.
+
+**Culture (string)**
+
+The culture to use for the DateTime format, eg en-US [Full List Here](https://msdn.microsoft.com/en-us/library/cc233982.aspx)
+
+**Format (string)**
+
+The format to use for the DateTime, eg dd/mm/yyyy [Full List Here](https://docs.microsoft.com/en-us/dotnet/standard/base-types/custom-date-and-time-format-strings)
+
+**Example**
+```HTML
+<html>
+<body>
+Name: <!--XRMREPORT:{"Type": "DateTime", "Field": "new_amount", "Culture" : "en-AU", "Format" : "dd/mm/yyyy", "OffsetHours" : "0"}-->
+</body>
+</html>
+```
+
 ### Subreport Field
 Used to insert a Subreport. NB: At this stage the FetchXML is static, planning to allow for XML to be customised on the fly.
 #### Parameters

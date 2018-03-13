@@ -4,6 +4,7 @@ using Microsoft.Xrm.Sdk;
 using Microsoft.Xrm.Sdk.Client;
 using Microsoft.Xrm.Sdk.Query;
 using System.Text.RegularExpressions;
+using System.Globalization;
 
 public static string processHTML (string HTMLResource, OrganizationServiceProxy OSP, string FetchXML){
         string htmlResult = "";
@@ -22,12 +23,24 @@ public static string processHTML (string HTMLResource, OrganizationServiceProxy 
                 Dictionary<string, string> item = JsonConvert.DeserializeObject<Dictionary<string, string>>(jsonData);
                 // Replace options
                 // Single field from source record <!--XRMREPORT:{"Type": "Field", "Field": "new_name"}-->
+                // Single field from source record <!--XRMREPORT:{"Type": "Currency", "Field": "new_amount", "Culture" : "en-AU"}-->
+                // Single field from source record <!--XRMREPORT:{"Type": "DateTime", "Field": "new_amount", "Culture" : "en-AU", "Format" : "dd/mm/yyyy", "OffsetHours" : "0"}-->
                 // Checkbox field from source record <!--XRMREPORT:{"Type": "Checkbox", "Field": "new_name", "CheckedValue" : "Yes"}-->
                 // Subreport <!--XRMREPORT:{"Type": "Subreport", "FetchXML": "htmlEncodedFetchXML", "Webresource" : "new_webresource"}-->
                 switch (item["Type"].ToString())
                 {
                     case "Field":
                         htmlToProcess = htmlToProcess.Replace(htmlReportComments.Value, getEntValue(item["Field"],EntityRecord));
+                        break;
+                    case "Currency":
+                        htmlToProcess = Decimal.TryParse(getEntValue(item["Field"],EntityRecord), out decimal dValue) 
+                            ? htmlToProcess.Replace(htmlReportComments.Value, dValue.ToString("C",  new CultureInfo(getEntValue(item["Culture"],EntityRecord) != "" ? getEntValue(item["Culture"],EntityRecord) : "en-US"))) 
+                            : htmlToProcess.Replace(htmlReportComments.Value,"<!--XRMREPORT: Could not convert currency format-->");
+                        break;
+                    case "DateTime":
+                        htmlToProcess = DateTime.TryParse(getEntValue(item["Field"],EntityRecord), out DateTime dtValue) 
+                            ? htmlToProcess.Replace(htmlReportComments.Value, dtValue.ToString(getEntValue(item["Format"],EntityRecord),  new CultureInfo(getEntValue(item["Culture"],EntityRecord) != "" ? getEntValue(item["Culture"],EntityRecord) : "en-US")))
+                            : htmlToProcess.Replace(htmlReportComments.Value,"<!--XRMREPORT: Could not convert to DateTime-->");
                         break;
                     case "Checkbox":
                         htmlToProcess = htmlToProcess.Replace(htmlReportComments.Value, getEntValue(item["Field"], EntityRecord) == item["CheckedValue"] ? "<input type='checkbox' checked>" : "<input type='checkbox'>" );
