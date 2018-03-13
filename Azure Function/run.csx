@@ -58,7 +58,7 @@ public static async Task<HttpResponseMessage> Run(HttpRequestMessage req, TraceW
 
     // Process HTML Template
     string htmlTemplate = processHTML(HTMLResource, organizationProxy, FetchXML);
-
+    log.Info(htmlTemplate);
     // Return HTML if returnType = HTML
     if (returnType == "html"){
         return new HttpResponseMessage(HttpStatusCode.OK) {

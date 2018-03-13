@@ -8,16 +8,24 @@ using System.Globalization;
 
 public static string processHTML (string HTMLResource, OrganizationServiceProxy OSP, string FetchXML){
         string htmlResult = "";
+        string htmlToProcess = retrieveWebResource(HTMLResource, OSP);
         string getEntValue(string CRMField, Entity ent)
         {
             return ent.FormattedValues.ContainsKey(CRMField) ? ent.FormattedValues[CRMField].ToString() : ent.Attributes.ContainsKey(CRMField) ? ent.Attributes[CRMField].ToString() : "";
         }
+        if (FetchXML == "Embedded"){
+            string patternXML = @"<!--XRMXML[\s\S]*?XRMXML-->";
+            Match matchXML = Regex.Match(htmlToProcess, patternXML);
+            while (matchXML.Success) {
+                FetchXML = matchXML.Value.Replace("<!--XRMXML","").Replace("XRMXML-->","");
+                break;
+            }
+        }
         var fetchResult = GetRelatedEntityFromFetchXML(FetchXML, OSP);
         foreach (var EntityRecord in fetchResult.Entities)
         {
-            string htmlToProcess = retrieveWebResource(HTMLResource, OSP);
             string pattern = @"<!--XRMREPORT:[^>]*-->";
-            Match htmlReportComments = Regex.Match(htmlToProcess, pattern);
+            Match htmlReportComments = Regex.Match(htmlToProcess, pattern);  
             while (htmlReportComments.Success) {
                 string jsonData = htmlReportComments.Value.Replace("<!--XRMREPORT:","").Replace("-->","");
                 Dictionary<string, string> item = JsonConvert.DeserializeObject<Dictionary<string, string>>(jsonData);
