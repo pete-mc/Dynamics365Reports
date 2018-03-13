@@ -2,11 +2,11 @@
 Current WIP, A report framework for Dynamics 365 using an Azure Function to use a HTML layout and FetchXML to create a PDF report.
 
 Currently Planned Features:
-* Better support for currency formats
-* Better support for date/time formats
+* Better credential handeling
 * Full sample HTML resources (Templates)
 * Dynamics workflow plugin
 * Dynamics html resource for Email Report and Print Report buttons
+* Extra formatting options
 
 ## Usage
 1. Create a new HTTP Trigger C# function in Azure. Create / Replace function.json, project.json and run.cx with files under Dynamics365PDF-Report folder.
@@ -28,17 +28,17 @@ Currently Planned Features:
 
 #### Parameters
 
-**apiKey (string)** - The API key as specified in the C# Azure Function.
+*apiKey (string)* - The API key as specified in the C# Azure Function.
 
-**crmOrgURI (string)** - The REST discovery URL for your instance.
+*crmOrgURI (string)* - The REST discovery URL for your instance.
 
-**crmUser (string)** - CRM credential username.
+*crmUser (string)* - CRM credential username.
 
-**crmPass (string)** - CRM credential password.
+*crmPass (string)* - CRM credential password.
 
-**HTMLResource (string)** - The name of the HTML resource to use as the template from CRM.
+*HTMLResource (string)* - The name of the HTML resource to use as the template from CRM.
 
-**FetchXML (string)** - HTML Encoded FetchXML for the subreport data. If you set FetchXML to "Embedded" it will look in the HTML for the FetchXML. See Embedded FetchXML for more info.
+*FetchXML (string)* - HTML Encoded FetchXML for the subreport data. If you set FetchXML to "Embedded" it will look in the HTML for the FetchXML. See Embedded FetchXML for more info.
 
 ## HTML Comment Syntax
 1. Start all placeholders with <!--XRMREPORT:
